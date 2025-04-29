@@ -306,9 +306,11 @@ exports.login = async (req, res) => {
 // logout
 exports.logout = async (req, res) => {
     try {
-        // Clear the token cookie first
         res.clearCookie("token", {
             httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'None',
+            path: '/',
         });
 
         return res.status(200).json({
@@ -319,9 +321,10 @@ exports.logout = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: 'Server Error, unable to logout'
-        })
+        });
     }
-}
+};
+
 
 //---------------------------------- For admin
 
