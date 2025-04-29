@@ -267,12 +267,13 @@ exports.login = async (req, res) => {
 
             // return cookie as a response
             return res.cookie('token', token, {
-                expires: new Date(Date.now() + 5 * 60 * 60 * 1000), // the token will get expire after 5 hours
-                httpOnly: true,
-                // secure: true,
-                // sameSite: 'Strict',
-                path: '/',
-            }).status(200).json({
+                expires: new Date(Date.now() + 10 * 60 * 60 * 1000), // Token expires after 10 hours
+                httpOnly: true, // Helps prevent XSS attacks by making the cookie inaccessible via JavaScript
+                secure: process.env.NODE_ENV === 'production', // Ensure the cookie is sent over HTTPS in production
+                sameSite: 'None', // Allows cross-site cookie usage (required if you're using cross-origin requests)
+                path: '/', // Makes the cookie available across the entire website
+            });
+              .status(200).json({
                 success: true,
                 message: 'User logged in successfully',
                 user: {
@@ -399,7 +400,7 @@ exports.signUpAdmin = async (req, res) => {
             });
         }
         // otp does not match
-        else if (recentOtp.otp !== otp ||    recentOtpOwner.otp !== ownerOtp) {
+        else if (recentOtp.otp !== otp || recentOtpOwner.otp !== ownerOtp) {
             return res.status(400).json({
                 success: false,
                 message: 'invalid OTP, otp does not match'
