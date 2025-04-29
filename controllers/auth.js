@@ -272,18 +272,18 @@ exports.login = async (req, res) => {
                 secure: process.env.NODE_ENV === 'production', // Ensure the cookie is sent over HTTPS in production
                 sameSite: 'None', // Allows cross-site cookie usage (required if you're using cross-origin requests)
                 path: '/', // Makes the cookie available across the entire website
-            });
-              .status(200).json({
-                success: true,
-                message: 'User logged in successfully',
-                user: {
-                    name: currentUser.firstName + ' ' + currentUser.lastName,
-                    image: currentUser.image,
-                    role: currentUser.accountType,
-                    accountType: currentUser.accountType,
-                    email: currentUser.email
-                }
             })
+                .status(200).json({
+                    success: true,
+                    message: 'User logged in successfully',
+                    user: {
+                        name: currentUser.firstName + ' ' + currentUser.lastName,
+                        image: currentUser.image,
+                        role: currentUser.accountType,
+                        accountType: currentUser.accountType,
+                        email: currentUser.email
+                    }
+                })
 
             // both the cookie and the token will be expired in 5-hours from the time of creation
 
