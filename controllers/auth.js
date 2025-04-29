@@ -263,7 +263,7 @@ exports.login = async (req, res) => {
                 id: currentUser._id,
                 image: currentUser.image
             }
-            const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '5h' });
+            const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '10h' });
 
             // return cookie as a response
             return res.cookie('token', token, {
