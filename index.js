@@ -23,7 +23,7 @@ const subSectionRouter = require('./routes/subSection');
 const { dataBaseConnection } = require('./config/dataBaseConnection');
 
 const corsOptions = {
-  origin: 'https://edunestedtech.vercel.app',  // Vercel frontend URL
+  origin: '*',  // Vercel frontend URL
   credentials: true,  // Allow cookies to be sent and received
 };
 app.use(cors(corsOptions));
