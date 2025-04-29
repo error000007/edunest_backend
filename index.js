@@ -22,13 +22,11 @@ const subSectionRouter = require('./routes/subSection');
 // import database connection
 const { dataBaseConnection } = require('./config/dataBaseConnection');
 
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow all origins (you can add custom logic here if needed)
-    callback(null, true); // Accept all origins
-  },
-  credentials: true  // Allow cookies and credentials
-}));
+const corsOptions = {
+  origin: 'https://edunestedtech.vercel.app/',  // Vercel frontend URL
+  credentials: true,  // Allow cookies to be sent and received
+};
+app.use(cors(corsOptions));
 
 // connecting the middleware
 app.use(express.json());
