@@ -10,8 +10,10 @@ const { sendMail } = require('../utils/mailSender');
 var jwt = require('jsonwebtoken');
 const Course = require('../models/Course')
 
-// update profile  ----w
+// update profile  ww
 exports.updateProfile = async (req, res) => {
+
+    // in this i can use patch instead so that i am able to change only the modified data not all 
 
     try {
 
@@ -110,11 +112,11 @@ exports.updateProfile = async (req, res) => {
     }
 }
 
-// delete account  -w
+// delete account  ww
 exports.deleteAccount = async (req, res) => {
     try {
         const userId = req.user.id;
-        const user = await User.findById(userId);
+        const user = await User.findByIdAndDelete(userId);
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -123,16 +125,13 @@ exports.deleteAccount = async (req, res) => {
         }
 
         // Delete the profile picture from Cloudinary if it exists
-        if (user.image.includes("cloudinary.com")) {
+        if (user?.image.includes("cloudinary.com")) {
             deleteFromCloudinary(user.image);
         }
 
         // delete the profile
         const profileId = user.profile;
         await Profile.findByIdAndDelete(profileId);
-
-        // delete the user
-        await User.findByIdAndDelete(userId);
 
         return res.status(200).json({
             success: true,
@@ -148,11 +147,11 @@ exports.deleteAccount = async (req, res) => {
     }
 }
 
-//delete by admin
+//delete by admin ww
 exports.deleteAccountByAdmin = async (req, res) => {
     try {
         const userId = req.params.id;
-        const user = await User.findById(userId);
+        const user = await User.findByIdAndDelete(userId);
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -161,16 +160,13 @@ exports.deleteAccountByAdmin = async (req, res) => {
         }
 
         // Delete the profile picture from Cloudinary if it exists
-        if (user.image.includes("cloudinary.com")) {
+        if (user?.image.includes("cloudinary.com")) {
             deleteFromCloudinary(user.image);
         }
 
         // delete the profile
         const profileId = user.profile;
         await Profile.findByIdAndDelete(profileId);
-
-        // delete the user
-        await User.findByIdAndDelete(userId);
 
         return res.status(200).json({
             success: true,
@@ -186,7 +182,7 @@ exports.deleteAccountByAdmin = async (req, res) => {
     }
 }
 
-// get user details ----w
+// get user details ww
 exports.getUserDetails = async (req, res) => {
     try {
 
@@ -196,6 +192,7 @@ exports.getUserDetails = async (req, res) => {
             .populate({ path: "profile" })
             .populate({ path: "course", select: "name description thumbnail" })
             // .populate({ path: "Portion", populate: { path: "completedVideo" } })
+            .lean()
             .exec();
 
         if (!user) {
@@ -230,7 +227,7 @@ exports.getUserDetails = async (req, res) => {
     }
 }
 
-// get All Students
+// get All Students ww
 exports.getAllStudents = async (req, res) => {
     try {
         const students = await User.find(
@@ -238,6 +235,7 @@ exports.getAllStudents = async (req, res) => {
             "firstName lastName image email"
         )
             .populate({ path: "profile" })
+            .lean()
             .exec();
 
         if (students.length == 0) {
@@ -260,7 +258,7 @@ exports.getAllStudents = async (req, res) => {
     }
 }
 
-// get All Instructor
+// get All Instructor ww
 exports.getAllInstructors = async (req, res) => {
     try {
         const instructors = await User.find(
@@ -268,6 +266,7 @@ exports.getAllInstructors = async (req, res) => {
             "firstName lastName image email"
         )
             .populate({ path: "profile" })
+            .lean()
             .exec();
 
         if (instructors.length == 0) {
@@ -290,11 +289,11 @@ exports.getAllInstructors = async (req, res) => {
     }
 }
 
-// get all courses of that user to display in dashboard
+// get all courses of that user to display in dashboard ww
 exports.getAllCourses = async (req, res) => {
     try {
         const userId = req.user.id;
-        const allCourses = await User.findById(userId).select("course").populate({ path: "course", select: "name description language price  thumbnail averageRating" });
+        const allCourses = await User.findById(userId).select("course").populate({ path: "course", select: "name description language price  thumbnail averageRating" }).lean();
         if (!allCourses) {
             return res.status(404).json({
                 success: false,
@@ -316,13 +315,14 @@ exports.getAllCourses = async (req, res) => {
     }
 }
 
-// get all courses that are availabel in the database
+// get all courses that are available in the database ww
 exports.getAllCoursesInDataBase = async (req, res) => {
     try {
         const allCourse = await Course.find({}).select("name instructor ratingAndReview description language whatYouWillLearn price thumbnail averageRating")
             .populate(
                 { path: "instructor", select: "firstName lastName image" })
             .populate({ path: "ratingAndReview", select: "rating review" })
+            .lean()
             .exec();
 
         if (!allCourse || allCourse.length === 0) {
@@ -346,13 +346,13 @@ exports.getAllCoursesInDataBase = async (req, res) => {
     }
 }
 
-// send mail to the adim
+// send mail to the adim ww
 exports.sendmailToAdmin = async (req, res) => {
     try {
         const { firstName, lastName, email, message } = req.body;
 
         // send mail to owner/admin
-        const response = await sendMail(process.env.MAIL_USER, `Mail from ${firstName} ${lastName}`,
+        await sendMail(process.env.MAIL_USER, `Mail from ${firstName} ${lastName}`,
             `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 0; border: 1px solid #333; border-radius: 5px; background-color: #000; color: #fff;">
   <!-- Header -->
@@ -412,14 +412,14 @@ exports.sendmailToAdmin = async (req, res) => {
     }
 }
 
-// send mail by admin to user
+// send mail by admin to user ww
 exports.sendmailToUserByAdmin = async (req, res) => {
     try {
         const { name, email, message } = req.body;
         console.log(req.body)
 
         // send mail to owner/admin
-        const response = await sendMail(email, `Mail from Edunest Admin`,
+        await sendMail(email, `Mail from Edunest Admin`,
             `
            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 0; border: 1px solid #333; border-radius: 5px; background-color: #000; color: #fff;">
 
@@ -470,7 +470,7 @@ exports.sendmailToUserByAdmin = async (req, res) => {
     }
 }
 
-// get cart course
+// get cart course ww
 exports.getCartCourse = async (req, res) => {
     try {
         const id = req.user.id;
@@ -480,6 +480,7 @@ exports.getCartCourse = async (req, res) => {
                 path: "cartCourse",
                 select: "name description language price thumbnail averageRating"
             })
+            .lean()
             .exec();
         if (!courses) {
             return res.status(200).json({
@@ -502,7 +503,7 @@ exports.getCartCourse = async (req, res) => {
     }
 }
 
-// insert courses in cart
+// insert courses in cart ww
 exports.insertCartCourse = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -513,21 +514,13 @@ exports.insertCartCourse = async (req, res) => {
                 message: "course id is required"
             })
         }
-        const user = await User.findById(userId);
+        const user = await User.findByIdAndUpdate(userId, { $addToSet: { cartCourse: courseId } });
         if (!user) {
             return res.status(400).json({
                 success: false,
                 message: "user not found"
             })
         }
-        if (user.cartCourse.includes(courseId)) {
-            return res.status(200).json({
-                success: false,
-                message: "course already present inside the cart"
-            })
-        }
-        user.cartCourse.push(courseId);
-        user.save();
         return res.status(200).json({
             success: true,
             message: "data inserted into the cart"
@@ -542,7 +535,7 @@ exports.insertCartCourse = async (req, res) => {
     }
 }
 
-// remove from cart
+// remove from cart ww
 exports.removeCourseFromCart = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -554,16 +547,13 @@ exports.removeCourseFromCart = async (req, res) => {
                 message: "all data are required"
             })
         }
-        const user = await User.findById(userId);
+        const user = await User.findByIdAndUpdate(userId, { $pull: { cartCourse: courseId } });
         if (!user) {
             return res.status(400).json({
                 success: false,
                 message: "user is not present "
             })
         }
-        user.cartCourse = user.cartCourse.filter(value => value != courseId);
-        user.save();
-
         return res.json({
             success: true,
             message: "course removed from cart"
@@ -576,6 +566,7 @@ exports.removeCourseFromCart = async (req, res) => {
     }
 }
 
+// remove all the courses from the cart ww
 exports.removeAllCourseFromCart = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -587,17 +578,13 @@ exports.removeAllCourseFromCart = async (req, res) => {
             });
         }
 
-        const user = await User.findById(userId);
+        const user = await User.findByIdAndUpdate(userId, { $set: { cartCourse: [] } });
         if (!user) {
             return res.status(404).json({
                 success: false,
                 message: "User not found"
             });
         }
-
-        // Proper way to clear the array in Mongoose
-        user.cartCourse = [];
-        await user.save();
 
         return res.status(200).json({
             success: true,

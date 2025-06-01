@@ -15,15 +15,13 @@ const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
 
-// create a new course ------w
+// create a new course ww
 exports.createCourse = async (req, res) => {
     try {
 
         // fetch data from req.body
         const { name, description, language, whatYouWillLearn, price, categoryId } = req.body;
-        console.log(req.body)
         const thumbnail = req.files ? req.files.thumbnailImg : null;
-        console.log(thumbnail)
         if (!name || !description || !language || !whatYouWillLearn || !price || !categoryId || !thumbnail) {
             return res.status(400).json({
                 success: false,
@@ -56,9 +54,7 @@ exports.createCourse = async (req, res) => {
         })
 
         // add this new course to the instructor's course list
-        const instructor = await User.findById(req.user.id);
-        instructor.course.push(newCourse._id);
-        await instructor.save();
+        const instructor = await User.findByIdAndUpdate(req.user.id, { $push: { course: newCourse._id } }, { new: true });
 
         // update the category collection
         category.course.push(newCourse._id);
@@ -120,7 +116,7 @@ exports.createCourse = async (req, res) => {
     }
 }
 
-// get course detail complete  -----w
+// get course detail complete  ww
 exports.getCourseById = async (req, res) => {
     try {
 
@@ -160,7 +156,9 @@ exports.getCourseById = async (req, res) => {
                 path: "studentEnrolled",
                 select: "firstName lastName image",
                 options: { limit: 10 }
-            }).exec()
+            })
+            .lean()
+            .exec()
 
         if (!course) {
             return res.status(404).json({
@@ -185,7 +183,7 @@ exports.getCourseById = async (req, res) => {
     }
 }
 
-// delete a course -----w
+// delete a course ww
 exports.deleteCourse = async (req, res) => {
     try {
 
@@ -209,7 +207,7 @@ exports.deleteCourse = async (req, res) => {
         //     })
         // }
 
-        const course = await Course.findById(courseId).populate({ path: "section", populate: { path: "subSection" } });
+        const course = await Course.findById(courseId).populate({ path: "section", populate: { path: "subSection" } }).lean();
         if (!course) {
             return res.status(404).json({
                 success: false,
@@ -241,9 +239,10 @@ exports.deleteCourse = async (req, res) => {
         // await user.save();
 
         // remove the course from the category
-        const category = await Category.findById(course.category);
-        category.course = category.course.filter(course => course.toString() != courseId)
-        await category.save();
+        await Category.findByIdAndUpdate(
+            course.category,
+            { $pull: { course: courseId } }
+        );
 
         // remove rating and review from the course
         for (let i = 0; i < course.ratingAndReview.length; i++) {
@@ -265,7 +264,7 @@ exports.deleteCourse = async (req, res) => {
     }
 }
 
-// get course detail for overview
+// get course detail for overview ww
 exports.getCourseByIdOverview = async (req, res) => {
     try {
 
@@ -305,6 +304,7 @@ exports.getCourseByIdOverview = async (req, res) => {
                 select: "firstName lastName image",
                 options: { limit: 10 }
             })
+            .lean()
             .exec();
 
         if (!course) {
@@ -330,7 +330,7 @@ exports.getCourseByIdOverview = async (req, res) => {
     }
 }
 
-// get course detail by admin
+// get course detail by admin ww
 exports.getCourseDetailByAdmin = async (req, res) => {
     try {
 
@@ -370,6 +370,7 @@ exports.getCourseDetailByAdmin = async (req, res) => {
                 select: "firstName lastName image",
                 options: { limit: 10 }
             })
+            .lean()
             .exec();
 
         if (!course) {
@@ -395,7 +396,7 @@ exports.getCourseDetailByAdmin = async (req, res) => {
     }
 }
 
-// stream a video
+// stream a video -----------------------
 exports.streamVideo = async (req, res) => {
     try {
         const { videoId } = req.params;
@@ -436,7 +437,7 @@ exports.streamVideo = async (req, res) => {
     }
 };
 
-// showing the result for the searched courses
+// showing the result for the searched courses ww
 exports.searchResult = async (req, res) => {
     try {
         let data = req.params.searchData;

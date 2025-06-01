@@ -4,7 +4,7 @@ const Section = require('../models/Section');
 const Course = require('../models/Course');
 const SubSection = require('../models/SubSection')
 
-// create section --------w
+// create section ww
 exports.createSection = async (req, res) => {
     try {
 
@@ -17,8 +17,10 @@ exports.createSection = async (req, res) => {
             })
         }
 
+        let course = await Course.findById(courseId);
+
         // validate the course id
-        if (! await Course.findById(courseId)) {
+        if (!course) {
             return res.status(400).json({
                 success: false,
                 message: 'Course not found'
@@ -30,15 +32,8 @@ exports.createSection = async (req, res) => {
 
         // insert the section to the Course model
         // Update course with the new section
-        const updatedCourse = await Course.findByIdAndUpdate(
-            courseId,
-            {
-                $push: {
-                    section: newSection._id
-                }
-            },
-            { new: true }
-        )
+        course.section.push(newSection._id);
+        await course.save();
 
         return res.status(200).json({
             success: true,
@@ -54,7 +49,7 @@ exports.createSection = async (req, res) => {
     }
 }
 
-// update section  -----w
+// update section  ww
 exports.updateSection = async (req, res) => {
     try {
         const { sectionId, name, description } = req.body;
@@ -89,7 +84,7 @@ exports.updateSection = async (req, res) => {
     }
 }
 
-// delete section ------w
+// delete section ww
 exports.deleteSection = async (req, res) => {
     try {
         const courseId = req.params.courseId;
@@ -102,7 +97,7 @@ exports.deleteSection = async (req, res) => {
             })
         }
 
-        const section = await Section.findById(sectionId);
+        const section = await Section.findByIdAndDelete(sectionId);
         const subSections = section.subSection;
 
         // delete the subSection from SubSection model
@@ -111,12 +106,7 @@ exports.deleteSection = async (req, res) => {
         }
 
         // delete the section from the course
-        const course = await Course.findById(courseId);
-        course.section = course.section.filter(section => section.toString() !== sectionId);
-        await course.save();
-
-        // delete the section from Section model
-        await Section.findByIdAndDelete(sectionId);
+        await Course.findByIdAndUpdate(courseId, { $pull: { section: sectionId } });
 
         return res.status(200).json({
             success: true,
@@ -132,7 +122,7 @@ exports.deleteSection = async (req, res) => {
     }
 }
 
-// get all sections ----w
+// get all sections ww
 exports.getAllSection = async (req, res) => {
     try {
         const { courseId } = req.params;
@@ -145,7 +135,9 @@ exports.getAllSection = async (req, res) => {
 
         const course = await Course.findById(courseId)
             .select('section')
-            .populate({ path: "section", select: "name description" });
+            .populate({ path: "section", select: "name description" })
+            .lean()
+            .exec();
 
         if (!course) {
             return res.status(404).json({

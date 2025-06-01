@@ -7,13 +7,12 @@ require('dotenv').config();
 const cloudinary = require('cloudinary').v2;
 const { deleteFromCloudinary } = require('../utils/cloudinaryDelete');
 
-// create subSection ------w
+// create subSection ww
 exports.createSubSection = async (req, res) => {
     try {
 
         // fetch the data from the req.body
         const { sectionId, title, timeDuration, description } = req.body;
-        console.log(req.body)
         const uploadedVideoFile = req.files.uploadedVideoFile;
         if (!sectionId || !title || !description || !uploadedVideoFile) {
             return res.status(400).json({
@@ -31,7 +30,7 @@ exports.createSubSection = async (req, res) => {
         })
 
         // add this subsection id to the section
-        const updatedSection = await Section.findByIdAndUpdate(sectionId, { $push: { subSection: newSubSection._id } }, { new: true });
+        await Section.findByIdAndUpdate(sectionId, { $push: { subSection: newSubSection._id } }, { new: true });
 
         // return the response
         return res.status(200).json({
@@ -48,7 +47,7 @@ exports.createSubSection = async (req, res) => {
     }
 }
 
-// update subSection ----w
+// update subSection ww
 exports.updateSubSection = async (req, res) => {
     try {
 
@@ -69,7 +68,7 @@ exports.updateSubSection = async (req, res) => {
                 message: 'SubSection not found'
             })
         }
-        
+
         // update the subsection
         subSection.title = title || subSection.title;
         subSection.description = description || subSection.description;
@@ -91,7 +90,7 @@ exports.updateSubSection = async (req, res) => {
     }
 }
 
-// delete subSection -----w
+// delete subSection ww
 exports.deleteSubSection = async (req, res) => {
     try {
 
@@ -116,9 +115,7 @@ exports.deleteSubSection = async (req, res) => {
         const videoUrl = subSection.videoUrl;
 
         // delete the subsection from the section
-        const section = await Section.findById(sectionId);
-        section.subSection = section.subSection.filter(section => section._id.toString() !== subSectionId);
-        await section.save();
+        await Section.findByIdAndUpdate(sectionId, { $pull: { subSection: subSectionId } });
 
         // delete the video from the cloudinary
         if (videoUrl.includes("cloudinary.com")) {
@@ -139,7 +136,7 @@ exports.deleteSubSection = async (req, res) => {
     }
 }
 
-// get all subsection to that particular section
+// get all subsection to that particular section ww
 exports.getAllSubSections = async (req, res) => {
     try {
         const sectionId = req.params.sectionId;
@@ -149,7 +146,10 @@ exports.getAllSubSections = async (req, res) => {
                 message: 'Section ID is required'
             })
         }
-        const allSubSections = await Section.findById(sectionId).select("subSection").populate({ path: "subSection" }).exec();
+        const allSubSections = await Section.findById(sectionId).select("subSection").populate({ path: "subSection" })
+            .lean()
+            .exec();
+
         if (allSubSections.length == 0) {
             return res.status(404).json({
                 success: false,

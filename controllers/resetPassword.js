@@ -6,7 +6,7 @@ const { sendMail } = require('../utils/mailSender');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
-// reset password token ----w
+// reset password token ww
 exports.resetPasswordToken = async (req, res) => {
     try {
 
@@ -26,7 +26,7 @@ exports.resetPasswordToken = async (req, res) => {
         }
 
         // check the user with the email
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email }).lean();
         if (!user) {
             return res.status(400).json({ success: false, message: "User not found" });
         }
@@ -101,7 +101,7 @@ exports.resetPasswordToken = async (req, res) => {
         });
     }
 }
-// reset password ----w
+// reset password ww
 exports.resetPassword = async (req, res) => {
     try {
 
@@ -146,8 +146,11 @@ exports.resetPassword = async (req, res) => {
             });
         }
 
+        // hash the password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
         // check the user with the email
-        const currentUser = await User.findOne({ email: decode.email });
+        const currentUser = await User.findOneAndUpdate({ email: decode.email }, { $set: { password: hashedPassword } });
         if (!currentUser) {
             return res.status(400).json({
                 success: false,
@@ -155,12 +158,7 @@ exports.resetPassword = async (req, res) => {
             });
         }
 
-        // hash the password
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // update the password
-        currentUser.password = hashedPassword;
-        await currentUser.save();
+        const loginUrl = process.env.FRONTEND_URL + "/login"
 
         // send the mail
         try {

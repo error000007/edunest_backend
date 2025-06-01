@@ -9,7 +9,7 @@ var jwt = require('jsonwebtoken');
 require('dotenv').config();
 const { sendMail } = require('../utils/mailSender');
 
-// send otp ---------w
+// send otp ww
 exports.sendOtp = async (req, res) => {
     try {
 
@@ -29,7 +29,7 @@ exports.sendOtp = async (req, res) => {
         }
 
         // check if user is already exist
-        if (await User.findOne({ email })) {
+        if (await User.findOne({ email }).lean()) {
             return res.status(400).json({
                 success: false,
                 message: 'User already registered, login to continue.'
@@ -44,7 +44,7 @@ exports.sendOtp = async (req, res) => {
         });
 
         // make sure the otp is unique , generate the otp till it is unique
-        while (await Otp.findOne({ otp: otp })) {
+        while (await Otp.findOne({ otp: otp }).lean()) {
             otp = otpGenerator.generate(6, {
                 upperCaseAlphabets: false,
                 lowerCaseAlphabets: false,
@@ -53,7 +53,7 @@ exports.sendOtp = async (req, res) => {
         }
 
         // add this entry to the Otp database collection
-        const otpResponse = await Otp.create({ otp: otp, email: email });
+        await Otp.create({ otp: otp, email: email });
 
         res.status(200).json({
             success: true,
@@ -68,35 +68,35 @@ exports.sendOtp = async (req, res) => {
     }
 }
 
-// sign-up ----------w
+// sign-up ww
 exports.signUp = async (req, res) => {
     try {
 
         // fetch data from req.body
         const { firstName, lastName, email, password, confirmPassword, accountType, otp } = req.body;
         if (!firstName || !email || !password || !confirmPassword || !accountType || !otp) {
-            return res.status(404).json({
+            return res.status(400).json({
                 success: false,
                 message: 'All fields are required'
             });
         }
 
         // match the password and confirm password
-        // if (password !== confirmPassword) {
-        //     return res.status(400).json({
-        //         success: false,
-        //         message: 'Passwords and confirm password does not match'
-        //     });
-        // }
+        if (password !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: 'Passwords and confirm password does not match'
+            });
+        }
 
         // find the recent otp based on the provided mail
         // it will give the latest entry on the database Otp with the given email
-        const recentOtp = await Otp.findOne({ email }).sort({ createdAt: -1 }).limit(1);
+        const recentOtp = await Otp.findOne({ email }).sort({ createdAt: -1 }).limit(1).lean();
 
         // validate the otp
         // no recent OTP in database
         if (!recentOtp) {
-            return res.status(404).json({
+            return res.status(400).json({
                 success: false,
                 message: 'OTP not found, Resend it'
             });
@@ -130,7 +130,7 @@ exports.signUp = async (req, res) => {
 
         if (newUser) {
             //  if user is created successfully then send a mail to the user
-            const mailResponse = await sendMail(email, "Welcome to EDUNEST",
+            await sendMail(email, "Welcome to EDUNEST",
                 `
              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #000000; color: #ffffff; border: 1px solid #333333;">
     <!-- Header -->
@@ -188,7 +188,7 @@ exports.signUp = async (req, res) => {
     }
 }
 
-// automatic login
+// automatic login ww
 exports.loginAutomatic = async (req, res) => {
 
     try {
@@ -200,7 +200,7 @@ exports.loginAutomatic = async (req, res) => {
             });
         }
         const decode = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findById(decode.id);
+        const user = await User.findById(decode.id).lean();
         // check if the user is there or not
         if (!user) {
             return res.status(401).json({
@@ -221,7 +221,7 @@ exports.loginAutomatic = async (req, res) => {
     }
 }
 
-// login --------w
+// login ww
 exports.login = async (req, res) => {
     try {
 
@@ -241,15 +241,15 @@ exports.login = async (req, res) => {
         }
 
         // check if user is there or not
-        const currentUser = await User.findOne({ email });
-        if (currentUser.accountType != accountType) {
-            return res.status(400).json({ success: false, message: "Invalid account type" })
-        }
+        const currentUser = await User.findOne({ email }).lean();
         if (!currentUser) {
             return res.status(404).json({
                 success: false,
                 message: 'User not found, kindly Register'
             })
+        }
+        if (currentUser.accountType != accountType) {
+            return res.status(400).json({ success: false, message: "Invalid account type" })
         }
 
         // match the password
@@ -269,9 +269,9 @@ exports.login = async (req, res) => {
             return res.cookie('token', token, {
                 expires: new Date(Date.now() + 10 * 60 * 60 * 1000), // Token expires after 10 hours
                 httpOnly: true, // Helps prevent XSS attacks by making the cookie inaccessible via JavaScript
-                secure: process.env.NODE_ENV === 'production', // Ensure the cookie is sent over HTTPS in production
-                sameSite: 'None', // Allows cross-site cookie usage (required if you're using cross-origin requests)
-                path: '/', // Makes the cookie available across the entire website
+                // secure: process.env.NODE_ENV === 'production', // Ensure the cookie is sent over HTTPS in production
+                // sameSite: 'None', // Allows cross-site cookie usage (required if you're using cross-origin requests)
+                // path: '/', // Makes the cookie available across the entire website
             })
                 .status(200).json({
                     success: true,
@@ -303,14 +303,14 @@ exports.login = async (req, res) => {
     }
 }
 
-// logout
+// logout ww
 exports.logout = async (req, res) => {
     try {
         res.clearCookie("token", {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'None',
-            path: '/',
+            // secure: process.env.NODE_ENV === 'production',
+            // sameSite: 'None',
+            // path: '/',
         });
 
         return res.status(200).json({
@@ -328,7 +328,7 @@ exports.logout = async (req, res) => {
 
 //---------------------------------- For admin
 
-// send OTP
+// send OTP ww
 exports.sendOtpToOwner = async (req, res) => {
     try {
         const OwnerMail = process.env.MAIL_USER;
@@ -340,7 +340,7 @@ exports.sendOtpToOwner = async (req, res) => {
         });
 
         // make sure the otp is unique , generate the otp till it is unique
-        while (await Otp.findOne({ otp: otp })) {
+        while (await Otp.findOne({ otp: otp }).lean()) {
             otp = otpGenerator.generate(6, {
                 upperCaseAlphabets: false,
                 lowerCaseAlphabets: false,
@@ -349,7 +349,7 @@ exports.sendOtpToOwner = async (req, res) => {
         }
 
         // add this entry to the Otp database collection
-        const otpResponse = await Otp.create({ otp: otp, email: OwnerMail });
+        await Otp.create({ otp: otp, email: OwnerMail });
 
         res.status(200).json({
             success: true,
@@ -365,11 +365,9 @@ exports.sendOtpToOwner = async (req, res) => {
     }
 }
 
-// sign up as a admin
+// sign up as a admin ww
 exports.signUpAdmin = async (req, res) => {
-    console.log(req.body)
     try {
-        // fetch data from req.body
         const { firstName, lastName, email, password, confirmPassword, accountType, otp, ownerOtp } = req.body;
         if (!firstName || !email || !password || !confirmPassword || !accountType || !otp || !ownerOtp) {
             return res.status(404).json({
@@ -391,8 +389,6 @@ exports.signUpAdmin = async (req, res) => {
         // it will give the latest entry on the database Otp with the given email
         const recentOtpOwner = await Otp.findOne({ email: process.env.MAIL_USER }).sort({ createdAt: -1 }).limit(1);
         const recentOtp = await Otp.findOne({ email: email }).sort({ createdAt: -1 }).limit(1);
-        console.log("owner : ", recentOtpOwner);
-        console.log("user : ", recentOtp);
 
         // validate the otp
         // no recent OTP in database
@@ -431,7 +427,7 @@ exports.signUpAdmin = async (req, res) => {
 
         if (newUser) {
             //  if user is created successfully then send a mail to the user
-            const mailResponse = await sendMail(email, "Welcome to EDUNEST",
+            await sendMail(email, "Welcome to EDUNEST",
                 `
      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #000000; color: #ffffff; border: 1px solid #333333;">
 <!-- Header -->

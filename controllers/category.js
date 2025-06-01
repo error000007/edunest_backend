@@ -2,7 +2,7 @@
 
 const Category = require('../models/Category');
 
-// create category ------w
+// create category ww
 exports.createCategory = async (req, res) => {
     try {
 
@@ -17,7 +17,7 @@ exports.createCategory = async (req, res) => {
         name = name.toUpperCase();
 
         // check if the category already exists
-        if (await Category.findOne({ name })) {
+        if (await Category.findOne({ name }).lean()) {
             return res.status(400).json({
                 success: false,
                 message: "Category already exists"
@@ -25,8 +25,8 @@ exports.createCategory = async (req, res) => {
         }
 
         // create a new category
-        const newCategory = await Category.create({ name });
-        const allCatagory = await Category.find({});
+        await Category.create({ name });
+        const allCatagory = await Category.find({}).lean();
 
         return res.status(200).json({
             success: true,
@@ -43,13 +43,14 @@ exports.createCategory = async (req, res) => {
     }
 }
 
-// get all categories  -----w
+// get all categories  ww
 exports.getAllCategory = async (req, res) => {
     try {
 
         // fetch data from database
         const category = await Category.find({}, { name: true })
             .select("name")
+            .lean()
             .exec();
 
         return res.status(200).json({
@@ -67,7 +68,7 @@ exports.getAllCategory = async (req, res) => {
     }
 }
 
-// get all courses by category  ----w
+// get all courses by category  ww
 exports.getAllCouseByCategory = async (req, res) => {
     try {
         const categoryId = req.params.categoryId;
@@ -89,6 +90,7 @@ exports.getAllCouseByCategory = async (req, res) => {
                     { path: "ratingAndReview", select: "rating review" }
                 ]
             })
+            .lean()
             .exec();
 
         if (!category || !category.course || category.course.length === 0) {
@@ -113,7 +115,7 @@ exports.getAllCouseByCategory = async (req, res) => {
     }
 };
 
-// delete catagory ----w
+// delete catagory ww
 exports.deleteCatagory = async (req, res) => {
     try {
         const id = req.params.id;
