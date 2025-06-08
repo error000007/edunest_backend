@@ -16,7 +16,11 @@ const ratingAndReviewSchema = new mongoose.Schema({
     review: {
         type: String,
         trim: true
-    }
+    },
+    lastUpdated: {
+        type: Date,
+        default: Date.now,
+    },
 
 })
 

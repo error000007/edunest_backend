@@ -48,6 +48,18 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Portion"
     }],
+    comments: [
+        {
+            ratingAndReview: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "RatingAndReview"
+            },
+            course: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Course"
+            }
+        }
+    ],
     cartCourse: [
         {
             type: mongoose.Schema.Types.ObjectId,
