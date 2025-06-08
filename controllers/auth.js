@@ -266,12 +266,11 @@ exports.login = async (req, res) => {
             const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '10h' });
 
             // return cookie as a response
-            return res.cookie('token', token, {
-                expires: new Date(Date.now() + 10 * 60 * 60 * 1000), // Token expires after 10 hours
-                httpOnly: true, // Helps prevent XSS attacks by making the cookie inaccessible via JavaScript
-                // secure: process.env.NODE_ENV === 'production', // Ensure the cookie is sent over HTTPS in production
-                // sameSite: 'None', // Allows cross-site cookie usage (required if you're using cross-origin requests)
-                // path: '/', // Makes the cookie available across the entire website
+            res.cookie('token', token, {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'None',
+                expires: new Date(Date.now() + 10 * 60 * 60 * 1000),
             })
                 .status(200).json({
                     success: true,
@@ -306,11 +305,10 @@ exports.login = async (req, res) => {
 // logout ww
 exports.logout = async (req, res) => {
     try {
-        res.clearCookie("token", {
+       res.clearCookie("token", {
             httpOnly: true,
-            // secure: process.env.NODE_ENV === 'production',
-            // sameSite: 'None',
-            // path: '/',
+            secure: true,
+            sameSite: 'None',
         });
 
         return res.status(200).json({
