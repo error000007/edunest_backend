@@ -1,5 +1,5 @@
 // in this controller all the business logic that are related to authentication and authorization are written
-
+const axios = require('axios')
 const Otp = require('../models/Otp');
 const User = require('../models/User');
 const Profile = require('../models/Profile');
@@ -8,6 +8,9 @@ const bcrypt = require('bcrypt');
 var jwt = require('jsonwebtoken');
 require('dotenv').config();
 const { sendMail } = require('../utils/mailSender');
+const { OAuth2Client } = require("google-auth-library");
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // send otp ww
 exports.sendOtp = async (req, res) => {
@@ -187,6 +190,183 @@ exports.signUp = async (req, res) => {
         });
     }
 }
+
+// google login
+exports.googleLogin = async (req, res) => {
+    try {
+        const { access_token, accountType } = req.body;
+
+        if (!access_token) {
+            return res.status(400).json({
+                success: false,
+                message: "Access token is required",
+            });
+        }
+
+        // Fetch user info from Google
+        const { data } = await axios.get("https://www.googleapis.com/oauth2/v3/userinfo", {
+            headers: {
+                Authorization: `Bearer ${access_token}`,
+            },
+        });
+
+        const { email, name, picture } = data;
+
+        // Check if user exists in DB
+        const user = await User.findOne({ email });
+
+        if (accountType != user.accountType) {
+            return res.json({
+                success: false,
+                message: "invalid User"
+            })
+        }
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found. Please register first.",
+            });
+        }
+
+        // Create JWT token
+        const token = jwt.sign(
+            {
+                id: user._id,
+                email: user.email,
+                name: `${user.firstName} ${user.lastName}`,
+                accountType: user.accountType,
+                image: user.image,
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: "10h" }
+        );
+
+        // Set token as secure cookie
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: "None",
+            expires: new Date(Date.now() + 10 * 60 * 60 * 1000),
+        });
+
+        // Respond with user data
+        return res.status(200).json({
+            success: true,
+            message: "Login successful",
+            user: {
+                name: `${user.firstName} ${user.lastName}`,
+                email: user.email,
+                accountType: user.accountType,
+                image: user.image,
+            },
+        });
+    } catch (error) {
+        console.error("Google login error:", error.response?.data || error.message);
+        return res.status(500).json({
+            success: false,
+            message: "Google login failed",
+        });
+    }
+
+};
+
+// google signUp
+exports.googleSignUp = async (req, res) => {
+    try {
+        const { access_token, accountType } = req.body;
+
+        if (!access_token || !accountType) {
+            return res.status(400).json({
+                success: false,
+                message: "Access token and account type are required",
+            });
+        }
+
+        if (accountType == "Admin") {
+            return res.json({
+                success: false,
+                message: "Feature not for Admin"
+            })
+        }
+
+        // Get user info from Google
+        const { data } = await axios.get("https://www.googleapis.com/oauth2/v3/userinfo", {
+            headers: {
+                Authorization: `Bearer ${access_token}`,
+            },
+        });
+
+        const { email, name, picture } = data;
+
+        // Check if user already exists
+        const existingUser = await User.findOne({ email });
+
+        if (existingUser) {
+            return res.status(409).json({
+                success: false,
+                message: "User already exists. Please login instead.",
+            });
+        }
+
+        const [firstName, ...rest] = name.split(" ");
+        const lastName = rest.join(" ") || "";
+
+        // Create a profile
+        const userProfile = await Profile.create({
+            userName: "",
+            gender: "",
+            dob: "",
+            about: "",
+            profession: "",
+        });
+
+        // Create the user
+        const newUser = await User.create({
+            firstName,
+            lastName,
+            email,
+            accountType,
+            image: picture || `https://ui-avatars.com/api/?name=${firstName}+${lastName}`,
+            profile: userProfile._id,
+            password: "google_temp_password"
+        });
+
+        if (newUser) {
+            // Send welcome email
+            await sendMail(email, "Welcome to EDUNEST", `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #000000; color: #ffffff; border: 1px solid #333333;">
+          <div style="background: #d10000; padding: 25px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">WELCOME TO EDUNEST</h1>
+          </div>
+          <div style="padding: 25px;">
+            <p style="margin-bottom: 15px;">Thank you for signing up with EDUNEST as a ${accountType}. We're excited to have you!</p>
+            <ul style="padding-left: 20px; margin-bottom: 20px;">
+              <li><a href="https://example.com/start" style="color: #d10000;">Getting Started Guide</a></li>
+              <li><a href="https://example.com/support" style="color: #d10000;">Support Center</a></li>
+            </ul>
+            <p>We hope you enjoy your experience with us.</p>
+            <p style="margin-top: 25px;">Best regards,<br><span style="color: #d10000;">The EDUNEST Team</span></p>
+          </div>
+          <div style="background: #1a1a1a; text-align: center; padding: 15px; font-size: 12px; border-top: 1px solid #333333;">
+            © 2023 EDUNEST | <a href="#" style="color: #d10000;">Privacy Policy</a> | <a href="#" style="color: #d10000;">Contact Us</a>
+          </div>
+        </div>
+      `);
+        }
+
+        return res.status(201).json({
+            success: true,
+            message: "User registered successfully. Please login to continue.",
+        });
+    } catch (error) {
+        console.error("Google registration error:", error.response?.data || error.message);
+        return res.status(500).json({
+            success: false,
+            message: "Server Error. Unable to register the user with Google.",
+        });
+    }
+};    
 
 // automatic login ww
 exports.loginAutomatic = async (req, res) => {
