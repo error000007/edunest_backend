@@ -2,6 +2,8 @@ const express = require('express');
 const app = express();
 const cookieParser = require('cookie-parser')
 const fileUpload = require('express-fileupload')
+const http = require("http");
+const { Server } = require("socket.io");
 require('dotenv').config();
 const cors = require("cors");
 
@@ -18,6 +20,7 @@ const razorPayPaymentIntegrationRouter = require('./routes/razorPayPaymentIntegr
 const resetPasswordRouter = require('./routes/resetPassword');
 const sectionRouter = require('./routes/section');
 const subSectionRouter = require('./routes/subSection');
+const liveSessionRouter = require('./routes/liveSession');
 
 // import database connection
 const { dataBaseConnection } = require('./config/dataBaseConnection');
@@ -26,6 +29,35 @@ app.use(cors({
   origin: ['http://localhost:5173', 'https://edunestedtech.vercel.app'], // allow both dev and prod
   credentials: true
 }));
+
+// for live streaming
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: ['http://localhost:5173', 'https://edunestedtech.vercel.app'],
+    methods: ["GET", "POST"],
+    credentials: true
+  },
+});
+io.on("connection", (socket) => {
+  console.log("✅ New client connected:", socket.id);
+
+  socket.on("join-room", (roomId) => {
+    console.log(`User joined room: ${roomId}`);
+    socket.join(roomId);
+    socket.to(roomId).emit("user-joined", socket.id);
+  });
+
+  socket.on("signal", ({ to, from, data }) => {
+    io.to(to).emit("signal", { from, data });
+  });
+
+  socket.on("disconnect", () => {
+    console.log("❌ Client disconnected:", socket.id);
+  });
+});
+app.set("io", io);
+
 
 
 
@@ -48,6 +80,7 @@ app.use('/EDUNEST/api/v1/razorPayPaymentIntegrationRouter', razorPayPaymentInteg
 app.use('/EDUNEST/api/v1/resetPasswordRouter', resetPasswordRouter);
 app.use('/EDUNEST/api/v1/sectionRouter', sectionRouter);
 app.use('/EDUNEST/api/v1/subSectionRouter', subSectionRouter);
+app.use('/EDUNEST/api/v1/liveSessionRouter', liveSessionRouter)
 
 // connecting the cloudinary connection
 cloudinaryConnection();
@@ -56,9 +89,9 @@ cloudinaryConnection();
 dataBaseConnection();
 
 // connecting the server
-app.listen(process.env.PORT, () => {
-  console.log(`Server is running on port ${process.env.PORT}`);
-})
+server.listen(process.env.PORT, () => {
+  console.log(`Server is running with Socket.IO on port ${process.env.PORT}`);
+});
 
 // default route
 app.get('/', (req, res) => {
