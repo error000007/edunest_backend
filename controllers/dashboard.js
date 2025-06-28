@@ -10,6 +10,38 @@ const { sendMail } = require('../utils/mailSender');
 var jwt = require('jsonwebtoken');
 const Course = require('../models/Course')
 
+
+// get all earnings
+exports.getAllEarnings = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const instructor = await User.findById(userId)
+            .populate({
+                path: "earnings.course",
+                select: "name price thumbnail", // Customize fields to return
+            })
+            .lean();
+
+        if (!instructor) {
+            return res.status(404).json({
+                success: false,
+                message: "Instructor not found",
+            });
+        }
+
+        // Return the populated earnings array
+        return res.status(200).json({
+            success: true,
+            earnings: instructor.earnings || [],
+        });
+    } catch (error) {
+        console.error("Error fetching earnings:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch earnings",
+        });
+    }
+};
 // update profile  ww
 exports.updateProfile = async (req, res) => {
 
@@ -191,7 +223,6 @@ exports.getUserDetails = async (req, res) => {
         const user = await User.findById(userId)
             .populate({ path: "profile" })
             .populate({ path: "course", select: "name description thumbnail" })
-            // .populate({ path: "Portion", populate: { path: "completedVideo" } })
             .lean()
             .exec();
 

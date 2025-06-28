@@ -3,12 +3,13 @@ const express = require('express');
 const courseRouter = express.Router();
 
 // import the controllers
-const { createCourse, getCourseById, searchResult, streamVideo, getCourseDetailByAdmin, deleteCourse, getCourseByIdOverview } = require('../controllers/course')
+const { createCourse, getCourseById, getTopCourses, searchResult, streamVideo, getCourseDetailByAdmin, deleteCourse, getCourseByIdOverview } = require('../controllers/course')
 
 // import the middleware
 const { isAuthenticated, isInstructor, isAdmin, isStudent } = require('../middlewares/auth');
 
 courseRouter.post('/createCourse', isAuthenticated, isInstructor, createCourse);
+courseRouter.get('/getTopCourses', getTopCourses);
 courseRouter.get('/getCourseById/:courseId', isAuthenticated, isStudent, getCourseById);
 courseRouter.get('/searchResult/:searchData', searchResult);
 courseRouter.get('/streamVideo/:videoId', isAuthenticated, isStudent, streamVideo);

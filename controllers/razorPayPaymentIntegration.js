@@ -6,6 +6,7 @@ const Course = require('../models/Course');
 const User = require('../models/User');
 const { sendMail } = require('../utils/mailSender');
 const crypto = require('crypto');
+const CourseProgress = require('../models/courseProgress')
 
 // initiate the razoprpay order 
 exports.capturePayment = async (req, res) => {
@@ -97,9 +98,7 @@ exports.verifypayment = async (req, res) => {
             });
         }
 
-
-
-        // Enroll the student: Add courses to user and user to courses
+        // Enroll the student
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({
@@ -110,16 +109,49 @@ exports.verifypayment = async (req, res) => {
 
         user.course.push(...courses);
 
-        // Update each course with the new student
+        // Enroll user into each course and initialize CourseProgress
         await Promise.all(
             courses.map(async (courseId) => {
                 const course = await Course.findById(courseId);
                 if (course) {
+                    // 1. Enroll student in course
                     course.studentEnrolled.push(userId);
                     await course.save();
+
+                    // 2. Update instructor earnings
+                    const instructor = await User.findById(course.instructor);
+                    if (instructor) {
+                        const index = instructor.earnings.findIndex(
+                            (item) => item.course.toString() === courseId
+                        );
+
+                        if (index === -1) {
+                            // First time earnings entry for this course
+                            instructor.earnings.push({
+                                course: courseId,
+                                studentEnrolled: 1,
+                            });
+                        } else {
+                            // Course already exists in earnings → increment count
+                            instructor.earnings[index].studentEnrolled += 1;
+                        }
+
+                        await instructor.save();
+                    }
+                }
+
+                // 3. Create CourseProgress if not exists
+                const existingProgress = await CourseProgress.findOne({ userId, courseId });
+                if (!existingProgress) {
+                    await CourseProgress.create({
+                        userId,
+                        courseId,
+                        completedVideos: [],
+                    });
                 }
             })
         );
+
 
         await user.save();
 
@@ -168,3 +200,4 @@ exports.verifypayment = async (req, res) => {
         });
     }
 };
+

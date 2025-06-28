@@ -65,7 +65,20 @@ const userSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: "Course"
         }
-    ]
+    ],
+    earnings: [
+        {
+            course: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Course",
+            },
+            studentEnrolled: {
+                type: Number,
+                default: 0,
+            },
+        },
+    ],
+
 })
 
 module.exports = mongoose.model("User", userSchema)

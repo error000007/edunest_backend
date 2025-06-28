@@ -400,8 +400,13 @@ exports.getCourseDetailByAdmin = async (req, res) => {
 exports.streamVideo = async (req, res) => {
     try {
         const { videoId } = req.params;
+        const range = req.headers.range;
 
-        // Step 1: Find the video (SubSection)
+        if (!range) {
+            return res.status(400).send("Requires Range header");
+        }
+
+        // Fetch video URL from DB
         const video = await SubSection.findById(videoId);
         if (!video) {
             return res.status(404).json({
@@ -410,23 +415,29 @@ exports.streamVideo = async (req, res) => {
             });
         }
 
-        // Step 2: Stream the video using Axios
         const videoUrl = video.videoUrl;
 
-        // in this i have fetched the video from the link of video from (cloudinary server) 
-        // in a stream way means in small chunks rather then the complete one
-        const response = await axios.get(videoUrl, { responseType: 'stream' });
+        // Pass the Range header to Cloudinary
+        const cloudinaryResponse = await axios.get(videoUrl, {
+            responseType: "stream",
+            headers: {
+                Range: range,
+            },
+        });
 
-        // inserting the header insidet the response 
-        res.setHeader("Content-Type", "video/mp4");
-        res.setHeader("Content-Disposition", `inline; filename=${videoId}.mp4`);
-        res.setHeader("Cache-Control", "no-cache");
+        // Get headers from Cloudinary
+        const contentRange = cloudinaryResponse.headers["content-range"];
+        const contentLength = cloudinaryResponse.headers["content-length"];
 
-        // the actual video data gets stored in response.data so make it a pipe and send it in response
-        // so in this in real time the video smll chunk data fetched from cloudinary stored in server and forwarded to frontend
-        // so the connection is still on till video is streaming 
-        response.data.pipe(res);
+        res.writeHead(206, {
+            "Content-Range": contentRange,
+            "Accept-Ranges": "bytes",
+            "Content-Length": contentLength,
+            "Content-Type": "video/mp4",
+        });
 
+        // Stream video data to frontend
+        cloudinaryResponse.data.pipe(res);
     } catch (error) {
         console.error("Error streaming video:", error.message);
         res.status(500).json({
@@ -482,6 +493,48 @@ exports.searchResult = async (req, res) => {
             success: false,
             message: "Unable to find search result",
             error: error.message,
+        });
+    }
+}
+
+// get top courses for home page 
+
+exports.getTopCourses = async (req, res) => {
+    try {
+        // Fetch top 10 latest courses (sorted by createdAt or _id)
+        const topLatestCourses = await Course.find({})
+            .sort({ _id: -1 }) // Newest first (or use createdAt if available)
+            .limit(10)
+            .select("name createdAt instructor language price thumbnail averageRating")
+            .populate({
+                path: "instructor",
+                select: "firstName lastName image"
+            })
+            .lean();
+
+        // Fetch top 10 highest-rated courses
+        const topRatedCourses = await Course.find({})
+            .sort({ averageRating: -1 }) // Highest rated first
+            .limit(10)
+            .select("name createdAt instructor language price thumbnail averageRating")
+            .populate({
+                path: "instructor",
+                select: "firstName lastName image"
+            })
+            .lean();
+
+        return res.status(200).json({
+            success: true,
+            message: "Top courses fetched successfully",
+            topLatestCourses,
+            topRatedCourses
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch top courses",
+            error: error.message
         });
     }
 }

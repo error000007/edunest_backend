@@ -20,7 +20,8 @@ const razorPayPaymentIntegrationRouter = require('./routes/razorPayPaymentIntegr
 const resetPasswordRouter = require('./routes/resetPassword');
 const sectionRouter = require('./routes/section');
 const subSectionRouter = require('./routes/subSection');
-const liveSessionRouter = require('./routes/liveSession');
+const streamRouter = require('./routes/stream');
+const courseProgressRouter = require('./routes/courseProgress')
 
 // import database connection
 const { dataBaseConnection } = require('./config/dataBaseConnection');
@@ -36,14 +37,14 @@ const io = new Server(server, {
   cors: {
     origin: ['http://localhost:5173', 'https://edunestedtech.vercel.app'],
     methods: ["GET", "POST"],
-    credentials: true
+    credentials: true,
   },
 });
 io.on("connection", (socket) => {
   console.log("✅ New client connected:", socket.id);
 
   socket.on("join-room", (roomId) => {
-    console.log(`User joined room: ${roomId}`);
+    console.log(`📢 Socket ${socket.id} joining room: ${roomId}`);
     socket.join(roomId);
     socket.to(roomId).emit("user-joined", socket.id);
   });
@@ -56,6 +57,7 @@ io.on("connection", (socket) => {
     console.log("❌ Client disconnected:", socket.id);
   });
 });
+
 app.set("io", io);
 
 
@@ -80,7 +82,8 @@ app.use('/EDUNEST/api/v1/razorPayPaymentIntegrationRouter', razorPayPaymentInteg
 app.use('/EDUNEST/api/v1/resetPasswordRouter', resetPasswordRouter);
 app.use('/EDUNEST/api/v1/sectionRouter', sectionRouter);
 app.use('/EDUNEST/api/v1/subSectionRouter', subSectionRouter);
-app.use('/EDUNEST/api/v1/liveSessionRouter', liveSessionRouter)
+app.use('/EDUNEST/api/v1/streamRouter', streamRouter)
+app.use('/EDUNEST/api/v1/courseProgressRouter', courseProgressRouter)
 
 // connecting the cloudinary connection
 cloudinaryConnection();

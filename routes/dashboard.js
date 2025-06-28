@@ -4,7 +4,7 @@ const express = require('express');
 const dashboard = express.Router();
 
 // import the controllers
-const { getCartCourse, removeCourseFromCart, removeAllCourseFromCart, insertCartCourse, updateProfile, getAllStudents, getAllCoursesInDataBase, getAllCourses, sendmailToUserByAdmin, deleteAccountByAdmin, getAllInstructors, sendmailToAdmin, deleteAccount, getUserDetails } = require('../controllers/dashboard');
+const { getCartCourse, removeCourseFromCart, removeAllCourseFromCart, getAllEarnings, insertCartCourse, updateProfile, getAllStudents, getAllCoursesInDataBase, getAllCourses, sendmailToUserByAdmin, deleteAccountByAdmin, getAllInstructors, sendmailToAdmin, deleteAccount, getUserDetails } = require('../controllers/dashboard');
 
 // import the middleware
 const { isAuthenticated, isAdmin, isInstructor, isStudent } = require('../middlewares/auth');
@@ -13,6 +13,7 @@ dashboard.put('/updateProfile', isAuthenticated, updateProfile);
 dashboard.get('/getAllStudents', isAuthenticated, isAdmin, getAllStudents);
 dashboard.get('/getAllInstructors', isAuthenticated, isAdmin, getAllInstructors);
 dashboard.get('/getAllCourses', isAuthenticated, getAllCourses);
+dashboard.get('/getAllEarnings', isAuthenticated, isInstructor, getAllEarnings);
 dashboard.get('/getAllCoursesInDataBase', isAuthenticated, isAdmin, getAllCoursesInDataBase);
 dashboard.delete('/deleteAccount', isAuthenticated, deleteAccount);
 dashboard.delete('/deleteAccountByAdmin/:id', isAuthenticated, isAdmin, deleteAccountByAdmin);
