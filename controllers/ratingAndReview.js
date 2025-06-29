@@ -1,229 +1,195 @@
 const RatingAndReview = require('../models/RatingAndReview');
 const Course = require('../models/Course');
-const User = require('../models/User');
 
-// add rating and review ----w
+// Add a comment
+
 exports.addRatingAndReview = async (req, res) => {
     try {
+        const { courseId, review, rating } = req.body;
+        const userId = req.user.id;
 
-        // fetch the data
-        const { courseId, rating, review } = req.body;
-        if (!courseId) {
-            return res.status(400).json({
-                success: false,
-                message: "Course id is required"
-            })
+        const course = await Course.findById(courseId);
+        if (!course) {
+            return res.status(404).json({ success: false, message: "Course not found" });
         }
 
-        // find the user from the database
-        const user = await User.findById(req.user.id)
-
-        // verify that user is enrolled inside the course or not
-        if (!user.course.includes(courseId)) {
-            return res.status(404).json({
-                success: false,
-                message: "user is not authorized for rating and review, first purchase the course"
-            })
+        const existing = await RatingAndReview.findOne({ course: courseId, user: userId });
+        if (existing) {
+            return res.status(400).json({ success: false, message: "You already reviewed this course" });
         }
 
-        // check whether the user have already commented on it
-        if (await RatingAndReview.findOne({ user: user._id })) {
-            return res.status(404).json({
-                success: false,
-                message: "user have already reviewed the course, you are only allowed to update your rating and reviews"
-            })
-        }
-
-        const newRatingAndReview = await RatingAndReview.create({
-            user: user._id,
-            rating: rating,
-            review: review
-        })
-
-        // add the comment to the user.comments
-        user.comments.push({
-            ratingAndReview: newRatingAndReview._id,
-            course: courseId
+        const newReview = await RatingAndReview.create({
+            course: courseId,
+            user: userId,
+            review,
+            rating
         });
-        await user.save();
 
-        // update the course collection
-        const course = await Course.findById(courseId)
+        course.reviews.push(newReview._id);
 
-        course.ratingAndReview.push(newRatingAndReview._id);
-        const totalNewLength = course.ratingAndReview.length;
-        const olderAverageRating = course.averageRating;
-        const newAverageRating = (olderAverageRating * (totalNewLength - 1) + rating) / totalNewLength;
-        course.averageRating = newAverageRating
+        const allReviews = await RatingAndReview.find({ course: courseId });
+        const totalRating = allReviews.reduce((sum, r) => sum + r.rating, 0);
+        const avgRating = totalRating / allReviews.length;
 
-        course.save();
+        course.averageRating = avgRating.toFixed(1);
+        await course.save();
 
-        return res.status(200).json({
+        res.status(201).json({
             success: true,
-            message: "Rating and review added successfully"
-        })
-
-    } catch (error) {
-        return res.status(500).json({
+            message: "Review added successfully",
+            data: newReview
+        });
+    } catch (err) {
+        res.status(500).json({
             success: false,
-            message: "Internal server error, unable to add rating and review"
-        })
-
-    }
-}
-
-// send the comment that have already made
-exports.sendComment = async (req, res) => {
-    try {
-        const courseId = req.params.courseId;
-
-        if (!courseId) {
-            return res.status(400).json({
-                success: false,
-                message: "Course ID is required.",
-            });
-        }
-
-        // Populate user's comments -> ratingAndReview
-        const user = await User.findById(req.user.id).populate({
-            path: "comments.ratingAndReview",
-            model: "RatingAndReview",
-            select: "rating review createdAt updatedAt lastUpdated" // Ensure we get the date fields
-        });
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found.",
-            });
-        }
-
-        // Find the comment for the given courseId
-        const commentObj = user.comments.find((comment) =>
-            comment.course.equals(courseId)
-        );
-
-        if (!commentObj) {
-            return res.status(404).json({
-                success: false,
-                message: "No comment found for this course by the user.",
-            });
-        }
-
-        return res.status(200).json({
-            success: true,
-            message: "Comment fetched successfully.",
-            data: commentObj.ratingAndReview,
-        });
-    } catch (error) {
-        console.error("Error in sendComment:", error);
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error while fetching comment.",
-        });
-    }
-};
-// edit comment
-exports.editComment = async (req, res) => {
-    try {
-        const { courseId, rating, review } = req.body;
-
-        if (!courseId || (!rating && !review)) {
-            return res.status(400).json({
-                success: false,
-                message: "Course ID and at least one of rating or review is required.",
-            });
-        }
-
-        const user = await User.findById(req.user.id);
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found.",
-            });
-        }
-
-        // Find the specific comment for this course
-        const commentRef = user.comments.find((comment) =>
-            comment.course.equals(courseId)
-        );
-
-        if (!commentRef) {
-            return res.status(404).json({
-                success: false,
-                message: "No existing comment found for this course.",
-            });
-        }
-
-        // Update the rating/review in RatingAndReview collection with lastUpdated
-        const updatedComment = await RatingAndReview.findByIdAndUpdate(
-            commentRef.ratingAndReview,
-            {
-                ...(rating && { rating }),
-                ...(review && { review }),
-                lastUpdated: Date.now() // Add this line to update the timestamp
-            },
-            { new: true }
-        );
-
-        return res.status(200).json({
-            success: true,
-            message: "Comment updated successfully.",
-            data: updatedComment,
-        });
-    } catch (error) {
-        console.error("Error in editComment:", error);
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error while editing comment.",
+            message: "Error adding review",
+            error: err.message
         });
     }
 };
 
-
-
-// get all rating and reviews of the course  ------
-exports.getAllRatingAndReviewsOfCourse = async (req, res) => {
+//  Delete a comment
+exports.deleteReview = async (req, res) => {
     try {
+        const userId = req.user.id;
+        const { reviewId, courseId } = req.params;
 
-        const courseId = req.params.courseId;
-        if (!courseId) {
-            return res.status(400).json({
-                success: false,
-                message: "Course id is required"
-            })
+        const review = await RatingAndReview.findById(reviewId);
+        if (!review) {
+            return res.status(404).json({ success: false, message: "Review not found or unauthorized" });
+        }
+        await RatingAndReview.findByIdAndDelete(reviewId);
+
+        const course = await Course.findById(courseId);
+        if (course) {
+            course.reviews = course.reviews.filter(id => id.toString() !== reviewId);
+
+            const remainingReviews = await RatingAndReview.find({ course: courseId });
+            const totalRating = remainingReviews.reduce((sum, r) => sum + r.rating, 0);
+            const avgRating = remainingReviews.length > 0 ? totalRating / remainingReviews.length : 0;
+
+            course.averageRating = avgRating.toFixed(1);
+            await course.save();
         }
 
-        const course = await Course.findById(courseId)
-            .select("ratingAndReviews")
+        res.status(200).json({ success: true, message: "Review deleted successfully" });
+
+    } catch (err) {
+        console.error("Error deleting review:", err);
+        res.status(500).json({
+            success: false,
+            message: "Error deleting review",
+            error: err.message
+        });
+    }
+};
+
+// Update a comment
+exports.updateReview = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { reviewId } = req.params;
+        const { review, rating } = req.body;
+
+        const existingReview = await RatingAndReview.findById(reviewId);
+
+        if (!existingReview) {
+            return res.status(404).json({ success: false, message: "Review not found" });
+        }
+
+        if (existingReview.user.toString() !== userId) {
+            return res.status(403).json({ success: false, message: "Unauthorized: You can only update your own review" });
+        }
+
+        if (review) existingReview.review = review;
+        if (rating) existingReview.rating = rating;
+
+        await existingReview.save();
+
+        const courseId = existingReview.course;
+        const allReviews = await RatingAndReview.find({ course: courseId });
+        const totalRating = allReviews.reduce((sum, r) => sum + r.rating, 0);
+        const avgRating = totalRating / allReviews.length;
+
+        await Course.findByIdAndUpdate(courseId, {
+            averageRating: avgRating.toFixed(1)
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Review updated",
+            data: existingReview
+        });
+
+    } catch (err) {
+        console.error("Error updating review:", err);
+        res.status(500).json({
+            success: false,
+            message: "Error updating review",
+            error: err.message
+        });
+    }
+};
+
+// get top courses
+exports.getTop10CommentsByCourse = async (req, res) => {
+    try {
+        const { courseId } = req.params;
+
+        const course = await Course.findById(courseId).select("reviews")
             .populate({
-                path: "ratingAndReview",
-                options: { limit: 20 },
-                populate: { path: "user", select: "firstname lastName image" }
+                path: "reviews",
+                select: "user review rating",
+                populate: {
+                    path: "user",
+                    select: "firstName lastName image"
+                }
             })
-            .exec();
 
         if (!course) {
             return res.status(404).json({
                 success: false,
-                message: "Course not found"
-            })
+                message: "Course not found",
+            });
         }
 
-        course.ratingAndReview.sort((a, b) => b.rating - a.rating);
+        const sortedTop10Reviews = course.reviews
+            .sort((a, b) => b.rating - a.rating)
+            .slice(0, 10);
 
-        return res.status(200).json({
+        res.status(200).json({
             success: true,
-            message: "All rating and reviews fetched successfully",
-            allRatingAndReviews: course.ratingAndReview
-        })
-
+            message: "Top 10 comments fetched successfully",
+            data: sortedTop10Reviews,
+        });
 
     } catch (error) {
-        return res.status(500).json({
+        console.error("Error fetching top 10 comments:", error);
+        res.status(500).json({
             success: false,
-            message: "Internal server error, unable to get all rating and reviews of the given course"
-        })
+            message: "Error fetching top comments",
+            error: error.message,
+        });
     }
-}
+};
+
+
+//  Get a review by courseId and userId
+exports.getReviewByCourseAndUser = async (req, res) => {
+    try {
+
+        const userId = req.user.id;
+        const { courseId } = req.params;
+
+        const review = await RatingAndReview.findOne({ course: courseId, user: userId })
+            .populate("user", "firstName lastName image email");
+
+        if (!review) {
+            return res.status(404).json({ success: false, message: "Review not found" });
+        }
+
+        res.status(200).json({ success: true, data: review });
+    } catch (err) {
+        res.status(500).json({ success: false, message: "Error fetching review", error: err.message });
+    }
+};

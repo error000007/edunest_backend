@@ -36,12 +36,6 @@ const courseSchema = new mongoose.Schema({
             ref: "Section"
         }
     ],
-    ratingAndReview: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "RatingAndReview"
-        }
-    ],
     price: {
         type: Number,
         trim: true,
@@ -70,7 +64,13 @@ const courseSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
-    }
+    },
+    reviews: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "RatingAndReview"
+        }
+    ]
 })
 
 module.exports = mongoose.model("Course", courseSchema)

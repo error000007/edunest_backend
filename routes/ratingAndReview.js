@@ -1,17 +1,29 @@
-// in this file we will write all the routes that are related to the rating and review
-
 const express = require('express');
-const ratingAndReviewRouter = express.Router();
+const {
+    addRatingAndReview,
+    deleteReview,
+    updateReview,
+    getTop10CommentsByCourse,
+    getReviewByCourseAndUser,
+} = require('../controllers/RatingAndReview');
 
-// import the controllers
-const { addRatingAndReview, getAllRatingAndReviewsOfCourse, sendComment, editComment } = require('../controllers/ratingAndReview');
-
-// import the middleware
 const { isAuthenticated, isStudent } = require('../middlewares/auth');
 
-ratingAndReviewRouter.post('/addRatingAndReview/:courseId', isAuthenticated, isStudent, addRatingAndReview);
-ratingAndReviewRouter.get('/sendComment/:courseId', isAuthenticated, isStudent, sendComment);
-ratingAndReviewRouter.patch('/editComment', isAuthenticated, isStudent, editComment);
-ratingAndReviewRouter.get('/getAllRatingAndReviewsOfCourse/:courseId', getAllRatingAndReviewsOfCourse);
+const RatingAndReviewRouter = express.Router();
 
-module.exports = ratingAndReviewRouter;    
+// POST: Add a new review (requires login)
+RatingAndReviewRouter.post('/add', isAuthenticated, isStudent, addRatingAndReview);
+
+// DELETE: Delete a review by reviewId and courseId (requires login)
+RatingAndReviewRouter.delete('/delete/:reviewId/:courseId', isAuthenticated, isStudent, deleteReview);
+
+// PUT: Update a review by reviewId (requires login)
+RatingAndReviewRouter.put('/update/:reviewId', isAuthenticated, isStudent, updateReview);
+
+// GET: Top 10 reviews for a course based on rating
+RatingAndReviewRouter.get('/top-comments/:courseId', getTop10CommentsByCourse);
+
+// GET: Get a review by courseId and userId
+RatingAndReviewRouter.get('/review/:courseId/', isAuthenticated, isStudent, getReviewByCourseAndUser);
+
+module.exports = RatingAndReviewRouter;

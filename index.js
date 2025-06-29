@@ -15,13 +15,13 @@ const authRouter = require('./routes/auth');
 const categoryRouter = require('./routes/category');
 const courseRouter = require('./routes/course');
 const dashboardRouter = require('./routes/dashboard');
-const ratingAndReviewRouter = require('./routes/ratingAndReview');
 const razorPayPaymentIntegrationRouter = require('./routes/razorPayPaymentIntegration');
 const resetPasswordRouter = require('./routes/resetPassword');
 const sectionRouter = require('./routes/section');
 const subSectionRouter = require('./routes/subSection');
 const streamRouter = require('./routes/stream');
 const courseProgressRouter = require('./routes/courseProgress')
+const RatingAndReviewRouter = require('./routes/RatingAndReview')
 
 // import database connection
 const { dataBaseConnection } = require('./config/dataBaseConnection');
@@ -77,13 +77,13 @@ app.use('/EDUNEST/api/v1/auth', authRouter);
 app.use('/EDUNEST/api/v1/dashboard', dashboardRouter);
 app.use('/EDUNEST/api/v1/category', categoryRouter);
 app.use('/EDUNEST/api/v1/course', courseRouter);
-app.use('/EDUNEST/api/v1/ratingAndReviewRouter', ratingAndReviewRouter);
 app.use('/EDUNEST/api/v1/razorPayPaymentIntegrationRouter', razorPayPaymentIntegrationRouter);
 app.use('/EDUNEST/api/v1/resetPasswordRouter', resetPasswordRouter);
 app.use('/EDUNEST/api/v1/sectionRouter', sectionRouter);
 app.use('/EDUNEST/api/v1/subSectionRouter', subSectionRouter);
 app.use('/EDUNEST/api/v1/streamRouter', streamRouter)
 app.use('/EDUNEST/api/v1/courseProgressRouter', courseProgressRouter)
+app.use('/EDUNEST/api/v1/RatingAndReview', RatingAndReviewRouter)
 
 // connecting the cloudinary connection
 cloudinaryConnection();

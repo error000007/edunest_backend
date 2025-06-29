@@ -8,7 +8,6 @@ require('dotenv').config();
 const SubSection = require('../models/SubSection');
 const cloudinary = require('cloudinary').v2;
 const Section = require('../models/Section');
-const RatingAndReview = require('../models/RatingAndReview');
 const { sendMail } = require('../utils/mailSender');
 // video streaming
 const fs = require("fs");
@@ -132,7 +131,7 @@ exports.getCourseById = async (req, res) => {
 
         // fetch the course details from the database
         const course = await Course.findById(courseId)
-            .select("name ratingAndReview category instructor studentEnrolled section description language whatYouWillLearn price thumbnail averageRating")
+            .select("name category instructor studentEnrolled section description language whatYouWillLearn price thumbnail averageRating")
             .populate({
                 path: "instructor",
                 select: "firstName lastName image"
@@ -142,14 +141,6 @@ exports.getCourseById = async (req, res) => {
                 populate: {
                     path: "subSection",
                     select: "title description timeDuration"
-                }
-            })
-            .populate({
-                path: "ratingAndReview",
-                options: { limit: 10 },
-                populate: {
-                    path: "user",
-                    select: "firstName lastName image"
                 }
             })
             .populate({
@@ -278,24 +269,17 @@ exports.getCourseByIdOverview = async (req, res) => {
         }
 
         // fetch the course details from the database
-        const course = await Course.findById(courseId).select("name ratingAndReview instructor studentEnrolled section description language whatYouWillLearn price thumbnail averageRating")
+        const course = await Course.findById(courseId).select("name instructor reviews studentEnrolled section description language whatYouWillLearn price thumbnail averageRating")
             .populate({
                 path: "instructor",
                 select: "firstName lastName image",
             })
+            .populate({ path: "reviews", select: "rating review user", populate: { path: "user", select: "firstName lastName image" } })
             .populate({
                 path: "section",
                 populate: {
                     path: "subSection",
                     select: "title description"
-                }
-            })
-            .populate({
-                path: "ratingAndReview",
-                options: { limit: 10 },
-                populate: {
-                    path: "user",
-                    select: "firstName lastName image"
                 }
             })
             // student enrolled in this course
@@ -344,7 +328,7 @@ exports.getCourseDetailByAdmin = async (req, res) => {
         }
 
         // fetch the course details from the database
-        const course = await Course.findById(courseId).select("name ratingAndReview instructor studentEnrolled section description language whatYouWillLearn price thumbnail averageRating")
+        const course = await Course.findById(courseId).select("name instructor studentEnrolled section description language whatYouWillLearn price thumbnail averageRating")
             .populate({
                 path: "instructor",
                 select: "firstName lastName image",
@@ -354,14 +338,6 @@ exports.getCourseDetailByAdmin = async (req, res) => {
                 populate: {
                     path: "subSection",
                     select: "title description videoUrl"
-                }
-            })
-            .populate({
-                path: "ratingAndReview",
-                options: { limit: 10 },
-                populate: {
-                    path: "user",
-                    select: "firstName lastName image"
                 }
             })
             // student enrolled in this course
@@ -498,7 +474,6 @@ exports.searchResult = async (req, res) => {
 }
 
 // get top courses for home page 
-
 exports.getTopCourses = async (req, res) => {
     try {
         // Fetch top 10 latest courses (sorted by createdAt or _id)

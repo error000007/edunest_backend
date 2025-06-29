@@ -1,27 +1,26 @@
-// in this the rating and the reviews of each course gets stored
 const mongoose = require('mongoose');
 
-const ratingAndReviewSchema = new mongoose.Schema({
+const RatingAndReviewSchema = new mongoose.Schema({
+    course: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Course",
+        required: true,
+    },
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
-        required: true
-    },
-    rating: {
-        type: Number,
-        min: 1,
-        max: 5,
-        default: 1
+        required: true,
     },
     review: {
         type: String,
-        trim: true
+        required: true,
     },
-    lastUpdated: {
-        type: Date,
-        default: Date.now,
+    rating: {
+        type: Number,
+        required: true,
+        min: 1,
+        max: 5,
     },
+});
 
-})
-
-module.exports = mongoose.model("RatingAndReview", ratingAndReviewSchema)
+module.exports = mongoose.model("RatingAndReview", RatingAndReviewSchema);

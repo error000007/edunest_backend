@@ -84,10 +84,9 @@ exports.getAllCouseByCategory = async (req, res) => {
         const category = await Category.findById(categoryId)
             .populate({
                 path: "course",
-                select: "name instructor ratingAndReview description language whatYouWillLearn price thumbnail averageRating",
+                select: "name instructor description language whatYouWillLearn price thumbnail averageRating",
                 populate: [
                     { path: "instructor", select: "firstName lastName image" },
-                    { path: "ratingAndReview", select: "rating review" }
                 ]
             })
             .lean()
