@@ -9,21 +9,21 @@ const {
 
 const { isAuthenticated, isStudent } = require('../middlewares/auth');
 
-const ratingRoute = express.Router();
+const ratingRoutes = express.Router();
 
 // POST: Add a new review (requires login)
-ratingRoute.post('/add', isAuthenticated, isStudent, addRatingAndReview);
+ratingRoutes.post('/add', isAuthenticated, isStudent, addRatingAndReview);
 
 // DELETE: Delete a review by reviewId and courseId (requires login)
-ratingRoute.delete('/delete/:reviewId/:courseId', isAuthenticated, isStudent, deleteReview);
+ratingRoutes.delete('/delete/:reviewId/:courseId', isAuthenticated, isStudent, deleteReview);
 
 // PUT: Update a review by reviewId (requires login)
-ratingRoute.put('/update/:reviewId', isAuthenticated, isStudent, updateReview);
+ratingRoutes.put('/update/:reviewId', isAuthenticated, isStudent, updateReview);
 
 // GET: Top 10 reviews for a course based on rating
-ratingRoute.get('/top-comments/:courseId', getTop10CommentsByCourse);
+ratingRoutes.get('/top-comments/:courseId', getTop10CommentsByCourse);
 
 // GET: Get a review by courseId and userId
-ratingRoute.get('/review/:courseId/', isAuthenticated, isStudent, getReviewByCourseAndUser);
+ratingRoutes.get('/review/:courseId/', isAuthenticated, isStudent, getReviewByCourseAndUser);
 
-module.exports = ratingRoute;
+module.exports = ratingRoutes;
