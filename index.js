@@ -21,7 +21,7 @@ const sectionRouter = require('./routes/section');
 const subSectionRouter = require('./routes/subSection');
 const streamRouter = require('./routes/stream');
 const courseProgressRouter = require('./routes/courseProgress')
-const RatingAndReviewRouter = require('./routes/RatingAndReview')
+const ratingRoute = require('./routes/RatingAndReview')
 
 // import database connection
 const { dataBaseConnection } = require('./config/dataBaseConnection');
@@ -83,7 +83,7 @@ app.use('/EDUNEST/api/v1/sectionRouter', sectionRouter);
 app.use('/EDUNEST/api/v1/subSectionRouter', subSectionRouter);
 app.use('/EDUNEST/api/v1/streamRouter', streamRouter)
 app.use('/EDUNEST/api/v1/courseProgressRouter', courseProgressRouter)
-app.use('/EDUNEST/api/v1/RatingAndReview', RatingAndReviewRouter)
+app.use('/EDUNEST/api/v1/RatingAndReview', ratingRoute)
 
 // connecting the cloudinary connection
 cloudinaryConnection();
