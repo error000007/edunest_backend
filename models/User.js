@@ -25,7 +25,6 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true,
-        unique: true
     },
     accountType: {
         type: String,
