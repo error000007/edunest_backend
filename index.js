@@ -35,7 +35,7 @@ app.use(cors({
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ['http://localhost:5173', 'https://edunestedtech.vercel.app'],
+    origin: ['http://localhost:5173', 'https://edunest-frontend-gamma.vercel.app'],
     methods: ["GET", "POST"],
     credentials: true,
   },
