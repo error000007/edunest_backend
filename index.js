@@ -27,7 +27,7 @@ const ratingRoutes = require('./routes/RatingAndReview');
 const { dataBaseConnection } = require('./config/dataBaseConnection');
 
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://edunestedtech.vercel.app'], // allow both dev and prod
+  origin: ['http://localhost:5173', 'https://edunest-frontend-virid.vercel.app'], // allow both dev and prod
   credentials: true
 }));
 
@@ -35,7 +35,7 @@ app.use(cors({
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ['http://localhost:5173', 'https://edunestedtech.vercel.app'],
+    origin: ['http://localhost:5173', 'https://edunest-frontend-virid.vercel.app'],
     methods: ["GET", "POST"],
     credentials: true,
   },
